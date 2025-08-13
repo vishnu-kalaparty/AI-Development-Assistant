@@ -1,0 +1,65 @@
+# Environment
+.env
+*.log
+
+# OS
+.DS_Store
+
+# Frontend
+frontend/node_modules/
+frontend/node/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+*.local
+
+# Frontend logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Backend
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+!backend/.mvn/wrapper/maven-wrapper.jar
+!backend/**/src/main/**/target/
+!backend/**/src/test/**/target/
+
+# Data directories (keep structure, ignore contents)
+backend/data/sandbox/*
+!backend/data/sandbox/.gitkeep
+backend/data/requirements/*
+!backend/data/requirements/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Build tools
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
