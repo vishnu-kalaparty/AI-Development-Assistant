@@ -1,0 +1,252 @@
+.requirements-page {
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.requirements-header {
+  margin-bottom: 2rem;
+}
+
+.requirements-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.requirements-header p {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.requirements-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.5rem;
+  height: calc(100vh - 12rem);
+}
+
+.sidebar {
+  background-color: #111111;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid #2a2a2a;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.sidebar-header h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.file-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.empty-state {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background-color: #1a1a1a;
+  border: 1px solid #2a2a2a;
+}
+
+.file-name {
+  flex: 1;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.87);
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.file-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-name:hover {
+  color: #646cff;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.delete-btn:hover {
+  color: #ff4444;
+  background-color: rgba(255, 68, 68, 0.1);
+}
+
+.requirements-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  overflow-y: auto;
+}
+
+.input-section {
+  background-color: #111111;
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid #2a2a2a;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.form-group input,
+.form-group select {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background-color: #1a1a1a;
+  border: 1px solid #3a3a3a;
+  color: rgba(255, 255, 255, 0.87);
+  font-size: 1rem;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+}
+
+.generate-button,
+.save-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.generate-button {
+  background-color: #646cff;
+  color: white;
+  flex: 1;
+}
+
+.generate-button:hover:not(:disabled) {
+  background-color: #535bf2;
+}
+
+.generate-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.save-button {
+  background-color: #10b981;
+  color: white;
+}
+
+.save-button:hover {
+  background-color: #059669;
+}
+
+.output-section {
+  background-color: #111111;
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid #2a2a2a;
+}
+
+.output-section h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.document-content {
+  background-color: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+  color: rgba(255, 255, 255, 0.87);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  font-family: 'Courier New', monospace;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+@media (max-width: 1024px) {
+  .requirements-layout {
+    grid-template-columns: 220px 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .requirements-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  
+  .sidebar {
+    height: 300px;
+  }
+}
