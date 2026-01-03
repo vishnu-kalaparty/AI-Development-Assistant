@@ -1,0 +1,26 @@
+# Simple Docker Compose
+version: '3.8'
+
+services:
+  ai-dev-assistant:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-dev-assistant
+    ports:
+      - "8080:8080"
+    environment:
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
+      - GOOGLE_AI_MODEL=${GOOGLE_AI_MODEL:-gemini-2.5-flash}
+    volumes:
+      # Mount data directory for persistent storage
+      - ./backend/data:/app/data
+
+      - ./backend/data/personas:/app/data/personas:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
