@@ -16,10 +16,15 @@ COPY frontend /frontend
 # Build Spring Boot application (includes frontend build)
 RUN mvn clean package -DskipTests
 
-# Runtime stage: lightweight JRE with built JAR
-FROM eclipse-temurin:17-jre-jammy
+# Runtime stage: JDK + Python so sandbox run_code can execute .java and .py
+FROM eclipse-temurin:17-jdk-jammy
 
 WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 wget ca-certificates \
+    && ln -sf /usr/bin/python3 /usr/local/bin/python \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy jar from build stage
 COPY --from=build /app/target/*.jar app.jar

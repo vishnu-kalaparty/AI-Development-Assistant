@@ -20,7 +20,7 @@ public class AgentToolsService {
     @Value("${sandbox.root.path}")
     private String sandboxRoot;
     
-    private Path getSandboxRoot() {
+    public Path getSandboxRootPath() {
         Path root = Paths.get(sandboxRoot).toAbsolutePath();
         try {
             Files.createDirectories(root);
@@ -29,10 +29,17 @@ public class AgentToolsService {
         }
         return root;
     }
+
+    public Path resolveSafePath(String pathStr) throws SecurityException {
+        if (pathStr == null || pathStr.isBlank()) {
+            return getSandboxRootPath();
+        }
+        return validatePath(pathStr);
+    }
     
     private Path validatePath(String pathStr) throws SecurityException {
         try {
-            Path sandboxPath = getSandboxRoot();
+            Path sandboxPath = getSandboxRootPath();
             Path resolved = sandboxPath.resolve(pathStr).normalize();
             
             if (!resolved.startsWith(sandboxPath)) {
