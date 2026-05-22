@@ -8,7 +8,7 @@ An AI-powered development assistant that helps with coding, learning, and requir
 - **Code Assistant** - Code review, debugging, and suggestions with a built-in editor
 - **Learning Topics** - Interactive programming tutorials
 - **Requirements Engineering** - Generate product requirements documents
-- **AI Agents** - Specialized personas for different roles (Frontend, Backend, DevOps, QA, Architects)
+- **AI Agents** - Engineer + Reviewer loop with sandbox file tools and local code execution
 
 ## Quick Start
 
@@ -81,6 +81,20 @@ Environment variables (set in `.env` or export in shell):
 
 - `GOOGLE_AI_API_KEY` - Your Google AI (Gemini) API key (required)
 - `GOOGLE_AI_MODEL` - Model to use (default: `gemini-2.5-flash`)
+
+## AI Agents
+
+The AI Agents page runs a bounded tool loop against Gemini function calling:
+
+1. The Engineer persona writes files under `backend/data/sandbox/`
+2. `run_code` executes `.py` or `.java` with `ProcessBuilder`, a timeout, and path validation. The Docker image includes Python 3 and a JDK.
+3. The QA reviewer reads and runs the result, then `APPROVE`s or requests changes
+
+Example task:
+
+```
+Write a Python program fizzbuzz.py that prints FizzBuzz from 1 to 20 (Fizz for multiples of 3, Buzz for 5, FizzBuzz for both). Then run it to verify the output.
+```
 
 ## AI Personas
 

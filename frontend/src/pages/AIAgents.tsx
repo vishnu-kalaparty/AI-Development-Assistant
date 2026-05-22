@@ -4,15 +4,19 @@ import CodeEditor from '../components/CodeEditor'
 import axios from 'axios'
 import './AIAgents.css'
 
-interface Message {
-  role: 'user' | 'assistant' | 'tool'
-  content: string
-}
-
 interface Persona {
   name: string
   type: string
   path: string
+}
+
+interface AgentStep {
+  stage: string
+  step: number
+  thought: string
+  toolName: string
+  toolArgs: string
+  observation: string
 }
 
 const PERSONA_OPTIONS: Record<string, Persona[]> = {
@@ -34,19 +38,26 @@ const PERSONA_OPTIONS: Record<string, Persona[]> = {
   ],
 }
 
+const EXAMPLE_TASK =
+  'Write a Python program fizzbuzz.py that prints FizzBuzz from 1 to 20 (Fizz for multiples of 3, Buzz for 5, FizzBuzz for both). Then run it to verify the output.'
+
 export default function AIAgents() {
-  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [activePersona, setActivePersona] = useState<Persona>(PERSONA_OPTIONS['Software Engineer'][1]) // Changed to index 1 (Emily)
+  const [activePersona, setActivePersona] = useState<Persona>(PERSONA_OPTIONS['Software Engineer'][0])
   const [selectedType, setSelectedType] = useState('Software Engineer')
-  const [selectedPersona, setSelectedPersona] = useState<Persona>(PERSONA_OPTIONS['Software Engineer'][1]) // Changed to index 1 (Emily)
-  
+  const [selectedPersona, setSelectedPersona] = useState<Persona>(PERSONA_OPTIONS['Software Engineer'][0])
+  const [includeReviewer, setIncludeReviewer] = useState(true)
+
   const [editorContent, setEditorContent] = useState('')
   const [editorPath, setEditorPath] = useState('')
   const [editorLanguage] = useState('python')
   const [sandboxFiles, setSandboxFiles] = useState<string[]>([])
-  
+
+  const [steps, setSteps] = useState<AgentStep[]>([])
+  const [status, setStatus] = useState('')
+  const [summary, setSummary] = useState('')
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -55,10 +66,11 @@ export default function AIAgents() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [steps, summary, isLoading])
 
   useEffect(() => {
-    setSelectedPersona(PERSONA_OPTIONS[selectedType][1])
+    const options = PERSONA_OPTIONS[selectedType]
+    setSelectedPersona(options[0])
   }, [selectedType])
 
   useEffect(() => {
@@ -76,38 +88,33 @@ export default function AIAgents() {
 
   const handleLoadPersona = async () => {
     try {
-      const response = await axios.post('/api/agents/load-persona', {
+      await axios.post('/api/agents/load-persona', {
         personaPath: selectedPersona.path,
       })
-
       setActivePersona(selectedPersona)
-      setMessages([])
-      console.log('Persona loaded:', response.data)
       alert(`Loaded persona: ${selectedPersona.name}`)
     } catch (error: any) {
-      console.error('Error loading persona:', error)
       const errorMsg = error.response?.data?.error || error.message || 'Failed to load persona'
       alert(`Failed to load persona: ${errorMsg}`)
     }
   }
 
   const handleNewTask = () => {
-    setMessages([])
-    // Reset to default persona (Emily - index 1)
-    setActivePersona(PERSONA_OPTIONS['Software Engineer'][1])
+    setSteps([])
+    setStatus('')
+    setSummary('')
+    setActivePersona(PERSONA_OPTIONS['Software Engineer'][0])
     setSelectedType('Software Engineer')
-    setSelectedPersona(PERSONA_OPTIONS['Software Engineer'][1])
+    setSelectedPersona(PERSONA_OPTIONS['Software Engineer'][0])
     setEditorContent('')
     setEditorPath('')
   }
 
   const handleRemovePersona = () => {
-    // Reset to default persona (Emily - index 1)
-    const defaultPersona = PERSONA_OPTIONS['Software Engineer'][1]
+    const defaultPersona = PERSONA_OPTIONS['Software Engineer'][0]
     setActivePersona(defaultPersona)
     setSelectedType('Software Engineer')
     setSelectedPersona(defaultPersona)
-    alert(`Reset to default persona: ${defaultPersona.name}`)
   }
 
   const handleLoadFile = async (filePath?: string) => {
@@ -124,7 +131,6 @@ export default function AIAgents() {
 
       setEditorContent(response.data.content)
       setEditorPath(pathToLoad)
-      alert(`Loaded file: ${pathToLoad}`)
     } catch (error) {
       console.error('Error loading file:', error)
       alert('Failed to load file')
@@ -142,8 +148,6 @@ export default function AIAgents() {
         filePath: editorPath.trim(),
         content: editorContent,
       })
-
-      alert(`Saved file: ${editorPath}`)
       await loadSandboxFiles()
     } catch (error) {
       console.error('Error saving file:', error)
@@ -161,75 +165,52 @@ export default function AIAgents() {
         setEditorPath('')
         setEditorContent('')
       }
-      alert(`Deleted ${fileName}`)
     } catch (error) {
       console.error('Error deleting file:', error)
       alert('Error deleting file')
     }
   }
 
-  const extractCodeFromResponse = (text: string) => {
-    // Match code blocks with language specifier: ```language\ncode\n```
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
-    const matches = [...text.matchAll(codeBlockRegex)]
-    
-    if (matches.length > 0) {
-      const lastMatch = matches[matches.length - 1] // Get the last code block
-      const extractedCode = lastMatch[2].trim()
-      return extractedCode
-    }
-    
-    return null
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!input.trim() || isLoading) return
 
-    const userMessage: Message = { role: 'user', content: input }
-    setMessages((prev) => [...prev, userMessage])
+    const task = input.trim()
     setInput('')
     setIsLoading(true)
+    setSteps([])
+    setStatus('running')
+    setSummary('')
 
     try {
-      const response = await axios.post('/api/agents/chat', {
-        messages: [...messages, userMessage],
-        personaPath: activePersona?.path || '',
-        editorContent: editorContent || '',
-        editorPath: editorPath || '',
-      })
+      const response = await axios.post(
+        '/api/agents/run',
+        {
+          task,
+          engineerPersonaPath: activePersona?.path || '',
+          reviewerPersonaPath: 'quality_testing/qa_engineers/Alex-QA.md',
+          includeReviewer,
+        },
+        { timeout: 180000 }
+      )
 
-      const newMessages = response.data.messages || []
-      setMessages(newMessages)
+      const data = response.data
+      setStatus(data.status || 'completed')
+      setSummary(data.summary || '')
+      setSteps(data.steps || [])
+      setSandboxFiles(data.sandboxFiles || [])
 
-      // Extract code from the last assistant message
-      const lastAssistantMsg = newMessages
-        .filter((m: Message) => m.role === 'assistant')
-        .pop()
-      
-      if (lastAssistantMsg) {
-        const extractedCode = extractCodeFromResponse(lastAssistantMsg.content)
-        if (extractedCode) {
-          setEditorContent(extractedCode)
-        }
-      }
-
-      // Update editor if file was loaded
-      if (response.data.editorContent) {
-        setEditorContent(response.data.editorContent)
-      }
-      if (response.data.editorPath) {
-        setEditorPath(response.data.editorPath)
+      const written: string[] = data.filesWritten || []
+      const fileToLoad = written[written.length - 1]
+      if (fileToLoad) {
+        await handleLoadFile(fileToLoad)
       }
     } catch (error: any) {
-      console.error('Error sending message:', error)
-      const errorMsg = error.response?.data?.error || error.message || 'Unknown error'
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: `Sorry, there was an error: ${errorMsg}`,
-      }
-      setMessages((prev) => [...prev, errorMessage])
+      console.error('Error running agents:', error)
+      const errorMsg = error.response?.data?.summary || error.message || 'Unknown error'
+      setStatus('error')
+      setSummary(errorMsg)
     } finally {
       setIsLoading(false)
     }
@@ -239,20 +220,21 @@ export default function AIAgents() {
     <div className="agents-page">
       <div className="agents-header">
         <h1>AI Agents</h1>
-        <p>ReAct-style coding agents with personas and sandbox tools</p>
+        <p>Engineer + Reviewer loop with sandbox tools and path-validated execution</p>
       </div>
 
       <div className="agents-container">
         <div className="left-panel">
           <div className="chat-section">
-            <h3>Chat & Personas</h3>
-            
+            <h3>Run timeline</h3>
+
             <div className="persona-selector">
               <div className="persona-info-header">
-                <h4>Active Persona</h4>
+                <h4>Engineer persona</h4>
                 <div className="persona-details">
                   <p><strong>Type:</strong> {activePersona.type}</p>
                   <p><strong>Persona:</strong> {activePersona.name}</p>
+                  <p><strong>Reviewer:</strong> {includeReviewer ? 'Alex-QA' : 'Off'}</p>
                 </div>
               </div>
 
@@ -295,6 +277,16 @@ export default function AIAgents() {
                 </div>
               </div>
 
+              <label className="reviewer-toggle">
+                <input
+                  type="checkbox"
+                  checked={includeReviewer}
+                  onChange={(e) => setIncludeReviewer(e.target.checked)}
+                  disabled={isLoading}
+                />
+                Run QA reviewer after the engineer
+              </label>
+
               <div className="persona-actions">
                 <button onClick={handleLoadPersona} disabled={isLoading}>
                   <Plus size={16} />
@@ -312,24 +304,50 @@ export default function AIAgents() {
             </div>
 
             <div className="messages-container">
-              {messages.length === 0 ? (
+              {steps.length === 0 && !summary && !isLoading ? (
                 <div className="empty-messages">
-                  <p>Describe your coding task, bug, or request...</p>
+                  <p>Give the agents a coding task. They will write files, run them, and review the result.</p>
+                  <button
+                    className="example-task-btn"
+                    onClick={() => setInput(EXAMPLE_TASK)}
+                    type="button"
+                  >
+                    Use FizzBuzz example
+                  </button>
                 </div>
               ) : (
-                messages.map((message, index) => (
-                  <div key={index} className={`agent-message ${message.role}`}>
-                    <div className="message-role">
-                      {message.role === 'user' ? 'User' : message.role === 'tool' ? 'Tool' : 'Assistant'}
+                <>
+                  {status && (
+                    <div className={`run-status status-${status}`}>
+                      Status: {status}
                     </div>
-                    <pre className="message-text">{message.content}</pre>
-                  </div>
-                ))
+                  )}
+                  {steps.map((step, index) => (
+                    <div key={index} className={`agent-message stage-${step.stage.toLowerCase()}`}>
+                      <div className="message-role">
+                        {step.stage} · step {step.step} · {step.toolName}
+                      </div>
+                      {step.thought && <pre className="message-text">{step.thought}</pre>}
+                      <pre className="tool-args">{step.toolArgs}</pre>
+                      <pre className="tool-observation">{step.observation}</pre>
+                    </div>
+                  ))}
+                  {summary && (
+                    <div className="agent-message assistant">
+                      <div className="message-role">Summary</div>
+                      <pre className="message-text">{summary}</pre>
+                    </div>
+                  )}
+                </>
               )}
               {isLoading && (
                 <div className="agent-message assistant">
-                  <div className="message-role">Assistant</div>
-                  <pre className="message-text">Thinking...</pre>
+                  <div className="message-role">Pipeline</div>
+                  <pre className="message-text">
+                    {includeReviewer
+                      ? 'Engineer is using tools, then QA will review and run the code...'
+                      : 'Engineer is using tools in the sandbox...'}
+                  </pre>
                 </div>
               )}
               <div ref={messagesEndRef} />
@@ -337,17 +355,11 @@ export default function AIAgents() {
 
             <form onSubmit={handleSubmit} className="agent-input-form">
               <div className="input-wrapper">
-                {editorContent && (
-                  <div className="context-indicator">
-                    <span>📎 Active file in context</span>
-                    {editorPath && <span className="file-path">{editorPath}</span>}
-                  </div>
-                )}
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Describe your coding task..."
+                  placeholder="Describe a coding task to generate, run, and review..."
                   disabled={isLoading}
                 />
               </div>
@@ -403,7 +415,7 @@ export default function AIAgents() {
                 type="text"
                 value={editorPath}
                 onChange={(e) => setEditorPath(e.target.value)}
-                placeholder="e.g., main.py or src/app.py"
+                placeholder="e.g., fizzbuzz.py"
               />
               <button onClick={() => handleLoadFile()} className="icon-button">
                 <FolderOpen size={18} />
@@ -426,8 +438,8 @@ export default function AIAgents() {
             </button>
 
             <p className="editor-info">
-              The chat agent can list/search/read/write files in <code>data/sandbox</code> using tools.
-              You can load/save specific files into this editor for manual review and editing.
+              The Engineer writes files with <code>write_file</code> and verifies them with <code>run_code</code>.
+              Paths are validated so agents cannot leave <code>data/sandbox</code>.
             </p>
           </div>
         </div>

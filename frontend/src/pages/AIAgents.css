@@ -209,6 +209,85 @@
   border: 1px solid #2a2a2a;
 }
 
+.stage-engineer {
+  border-left: 3px solid #60a5fa;
+}
+
+.stage-reviewer {
+  border-left: 3px solid #f59e0b;
+}
+
+.tool-args,
+.tool-observation {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0.4rem 0 0;
+  font-family: 'Courier New', monospace;
+}
+
+.tool-observation {
+  color: #86efac;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.run-status {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.status-needs_changes,
+.status-exhausted {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.status-error,
+.status-running {
+  background: rgba(100, 108, 255, 0.15);
+  color: #a5b4fc;
+}
+
+.status-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.reviewer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.example-task-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+  background: #1a1a1a;
+  color: #9cdcfe;
+  cursor: pointer;
+}
+
+.example-task-btn:hover {
+  border-color: #646cff;
+}
+
 .message-role {
   font-size: 0.8rem;
   font-weight: 600;

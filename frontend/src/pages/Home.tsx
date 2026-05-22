@@ -6,8 +6,8 @@ export default function Home() {
       <div className="hero-section">
         <h1>AI Development Assistant</h1>
         <p className="hero-subtitle">
-          Specialized AI agents help you design, code, and ship software faster. 
-          Powered by Google Gemini with sandboxed file operations.
+          Specialized AI agents help you design, code, and ship software faster.
+          Powered by Google Gemini with a path-validated sandbox and a local execution timeout.
         </p>
         
         <div className="hero-actions">
@@ -23,16 +23,16 @@ export default function Home() {
           <li><strong>Learning Topics</strong> - Explanations tailored to different skill levels</li>
           <li><strong>Requirements Engineering</strong> - Generate business requirements, vision statements, and project plans</li>
           <li><strong>Code Assistant</strong> - Review, debug, and modify code with AI-powered suggestions</li>
-          <li><strong>AI Agents</strong> - ReAct-style agents with specialized personas that can read, write, and search files in a sandboxed environment</li>
+          <li><strong>AI Agents</strong> - Engineer + Reviewer loop that reads, writes, searches, and runs files in a path-validated sandbox</li>
         </ul>
       </div>
 
       <div className="info-section">
         <h2>How It Works</h2>
         <p>
-          The AI Agents page implements the ReAct pattern - agents can reason about tasks 
-          and use tools to interact with files. All file operations are sandboxed to the 
-          <code>data/sandbox/</code> directory for security.
+          The AI Agents page runs a bounded tool loop: the Engineer writes files, executes them with a timeout,
+          then a QA reviewer inspects the result. All file operations stay under
+          <code>data/sandbox/</code>.
         </p>
         <p>
           The code assistant uses Google AI's Gemini models to review and modify code. 
