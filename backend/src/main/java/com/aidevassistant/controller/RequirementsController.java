@@ -12,12 +12,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/requirements")
@@ -89,23 +85,9 @@ public class RequirementsController {
     @GetMapping("/files")
     public ResponseEntity<Map<String, Object>> listRequirements() {
         try {
-            Path reqPath = Paths.get(requirementsRoot);
-            List<String> files = new ArrayList<>();
-            
-            if (Files.exists(reqPath) && Files.isDirectory(reqPath)) {
-                try (Stream<Path> paths = Files.list(reqPath)) {
-                    files = paths
-                            .filter(Files::isRegularFile)
-                            .map(p -> p.getFileName().toString())
-                            .sorted()
-                            .collect(Collectors.toList());
-                }
-            }
-            
             Map<String, Object> response = new HashMap<>();
-            response.put("files", files);
+            response.put("files", requirementsService.listRequirementsFiles());
             return ResponseEntity.ok(response);
-            
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(null);
         }
