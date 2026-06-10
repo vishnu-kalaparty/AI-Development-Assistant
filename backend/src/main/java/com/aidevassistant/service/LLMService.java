@@ -1,14 +1,12 @@
 package com.aidevassistant.service;
 
-import com.aidevassistant.config.GoogleAIConfig;
 import com.aidevassistant.dto.MessageDTO;
-import com.google.genai.Client;
-import com.google.genai.types.AutomaticFunctionCallingConfig;
-import com.google.genai.types.Content;
-import com.google.genai.types.GenerateContentConfig;
-import com.google.genai.types.GenerateContentResponse;
-import com.google.genai.types.Part;
-import com.google.genai.types.Tool;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,56 +19,46 @@ public class LLMService {
 
     private static final Logger log = LoggerFactory.getLogger(LLMService.class);
 
-    private final Client client;
-    private final String model;
+    private final ChatModel chatModel;
 
-    public LLMService(GoogleAIConfig googleConfig) {
-        this.client = Client.builder()
-                .apiKey(googleConfig.getKey())
-                .build();
-        this.model = googleConfig.getModel();
+    public LLMService(ChatModel chatModel) {
+        this.chatModel = chatModel;
     }
 
     public String chat(List<MessageDTO> messages) {
         try {
-            Content systemInstruction = null;
-            List<Content> contents = new ArrayList<>();
+            List<ChatMessage> contents = new ArrayList<>();
+            StringBuilder system = new StringBuilder();
 
             for (MessageDTO msg : messages) {
                 if (msg.getRole().equalsIgnoreCase("system")) {
-                    systemInstruction = Content.fromParts(Part.fromText(msg.getContent()));
+                    if (system.length() > 0) {
+                        system.append('\n');
+                    }
+                    system.append(msg.getContent());
                 } else if (msg.getRole().equalsIgnoreCase("user")) {
-                    contents.add(Content.builder()
-                            .role("user")
-                            .parts(List.of(Part.fromText(msg.getContent())))
-                            .build());
+                    contents.add(UserMessage.from(msg.getContent()));
                 } else if (msg.getRole().equalsIgnoreCase("assistant") || msg.getRole().equalsIgnoreCase("model")) {
-                    contents.add(Content.builder()
-                            .role("model")
-                            .parts(List.of(Part.fromText(msg.getContent())))
-                            .build());
+                    contents.add(AiMessage.from(msg.getContent()));
                 }
             }
 
-            if (contents.isEmpty()) {
-                contents.add(Content.builder()
-                        .role("user")
-                        .parts(List.of(Part.fromText("Hello")))
-                        .build());
+            if (system.length() > 0) {
+                contents.add(0, SystemMessage.from(system.toString()));
+            }
+            if (contents.stream().noneMatch(m -> m instanceof UserMessage)) {
+                contents.add(UserMessage.from("Hello"));
             }
 
-            GenerateContentConfig.Builder configBuilder = GenerateContentConfig.builder()
-                    .temperature(0.7f)
-                    .maxOutputTokens(8192);
-            if (systemInstruction != null) {
-                configBuilder.systemInstruction(systemInstruction);
+            ChatResponse response = chatModel.chat(contents);
+            if (response == null || response.aiMessage() == null) {
+                return "";
             }
-
-            GenerateContentResponse response = client.models.generateContent(model, contents, configBuilder.build());
-            return response.text();
+            String text = response.aiMessage().text();
+            return text != null ? text : "";
         } catch (Exception e) {
-            log.error("Error calling Google AI API", e);
-            throw new RuntimeException("Failed to get response from AI: " + e.getMessage());
+            log.error("Chat request failed", e);
+            throw new RuntimeException("Failed to get response from AI: " + e.getMessage(), e);
         }
     }
 
@@ -80,26 +68,5 @@ public class LLMService {
                 new MessageDTO("user", userMessage)
         );
         return chat(messages);
-    }
-
-    public GenerateContentResponse generate(List<Content> history, String systemPrompt, List<Tool> tools) {
-        try {
-            GenerateContentConfig.Builder configBuilder = GenerateContentConfig.builder()
-                    .temperature(0.3f)
-                    .maxOutputTokens(8192)
-                    .automaticFunctionCalling(AutomaticFunctionCallingConfig.builder().disable(true).build());
-
-            if (systemPrompt != null && !systemPrompt.isBlank()) {
-                configBuilder.systemInstruction(Content.fromParts(Part.fromText(systemPrompt)));
-            }
-            if (tools != null && !tools.isEmpty()) {
-                configBuilder.tools(tools);
-            }
-
-            return client.models.generateContent(model, history, configBuilder.build());
-        } catch (Exception e) {
-            log.error("Error generating with tools", e);
-            throw new RuntimeException("Failed to get response from AI: " + e.getMessage());
-        }
     }
 }

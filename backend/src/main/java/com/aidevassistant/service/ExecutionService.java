@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -41,12 +42,14 @@ public class ExecutionService {
     );
 
     private final AgentToolsService agentToolsService;
+    private final int timeoutSeconds;
 
-    @Value("${execution.timeout-seconds:15}")
-    private int timeoutSeconds;
-
-    public ExecutionService(AgentToolsService agentToolsService) {
+    public ExecutionService(
+            AgentToolsService agentToolsService,
+            @Value("${execution.timeout-seconds:15}") int timeoutSeconds
+    ) {
         this.agentToolsService = agentToolsService;
+        this.timeoutSeconds = timeoutSeconds;
     }
 
     @PostConstruct
@@ -65,37 +68,41 @@ public class ExecutionService {
 
     public String runFile(String filePath) {
         try {
-            Path sandbox = agentToolsService.getSandboxRootPath();
             Path safePath = agentToolsService.resolveSafePath(filePath);
+            Path sandbox = agentToolsService.getSandboxRootPath();
+            return runAbsoluteFile(safePath, sandbox);
+        } catch (SecurityException e) {
+            return "Security Error: " + e.getMessage();
+        } catch (Exception e) {
+            log.error("Failed to run {}", filePath, e);
+            return "Error running file: " + e.getMessage();
+        }
+    }
 
-            if (!Files.exists(safePath) || !Files.isRegularFile(safePath)) {
-                return "Error: File not found in sandbox: " + filePath;
+    /** Runs a file from an absolute path (e.g. materialized draft sandbox in a temp directory). */
+    public String runAbsoluteFile(Path absoluteFile, Path workingDir) {
+        try {
+            if (!Files.exists(absoluteFile) || !Files.isRegularFile(absoluteFile)) {
+                return "Error: File not found: " + absoluteFile;
             }
 
-            String relative = sandbox.relativize(safePath).toString();
-            if (relative.startsWith("-") || relative.contains("\0")) {
-                return "Error: Invalid file name";
-            }
-
-            String lower = safePath.getFileName().toString().toLowerCase(Locale.ROOT);
+            String lower = absoluteFile.getFileName().toString().toLowerCase(Locale.ROOT);
             if (lower.endsWith(".py")) {
-                return runPython(safePath, sandbox);
+                return runPython(absoluteFile, workingDir);
             }
             if (lower.endsWith(".js")) {
                 Path node = findExecutable("node");
                 if (node == null) {
                     return "Error: node not found. Install Node.js or run a .py / .java file.";
                 }
-                return execute(List.of(node.toString(), safePath.toString()), sandbox);
+                return execute(List.of(node.toString(), absoluteFile.toString()), workingDir);
             }
             if (lower.endsWith(".java")) {
-                return runJava(safePath, sandbox);
+                return runJava(absoluteFile, workingDir);
             }
             return "Error: Unsupported file type. Use .py, .js, or .java";
-        } catch (SecurityException e) {
-            return "Security Error: " + e.getMessage();
         } catch (Exception e) {
-            log.error("Failed to run {}", filePath, e);
+            log.error("Failed to run {}", absoluteFile, e);
             return "Error running file: " + e.getMessage();
         }
     }
@@ -105,7 +112,57 @@ public class ExecutionService {
         if (python == null) {
             return "Error: python3 not found on PATH (" + describeRuntime() + ")";
         }
-        return execute(List.of(python.toString(), "-u", file.toString()), sandbox);
+        Path projectRoot = resolvePythonProjectRoot(file, sandbox);
+        Path workingDir = projectRoot != null ? projectRoot : sandbox;
+        Map<String, String> extraEnv = new LinkedHashMap<>();
+        String pythonPath = buildPythonPath(file, projectRoot);
+        if (!pythonPath.isBlank()) {
+            extraEnv.put("PYTHONPATH", pythonPath);
+        }
+        return execute(List.of(python.toString(), "-u", file.toString()), workingDir, extraEnv);
+    }
+
+    /**
+     * Walk upward from the script to find a Python project root (directory with {@code src/} or {@code tests/}).
+     */
+    static Path resolvePythonProjectRoot(Path file, Path sandbox) {
+        Path dir = file.getParent();
+        while (dir != null && (dir.startsWith(sandbox) || dir.equals(sandbox))) {
+            boolean hasSrc = Files.isDirectory(dir.resolve("src"));
+            boolean hasTests = Files.isDirectory(dir.resolve("tests"));
+            if (hasSrc || hasTests) {
+                return dir;
+            }
+            if (dir.equals(sandbox)) {
+                break;
+            }
+            dir = dir.getParent();
+        }
+        return file.getParent();
+    }
+
+    static String buildPythonPath(Path file, Path projectRoot) {
+        LinkedHashSet<String> paths = new LinkedHashSet<>();
+        Path parent = file.getParent();
+        if (parent != null) {
+            paths.add(parent.toAbsolutePath().toString());
+        }
+        if (projectRoot != null) {
+            Path src = projectRoot.resolve("src");
+            if (Files.isDirectory(src)) {
+                paths.add(src.toAbsolutePath().toString());
+            }
+            paths.add(projectRoot.toAbsolutePath().toString());
+        }
+        String existing = System.getenv("PYTHONPATH");
+        if (existing != null && !existing.isBlank()) {
+            for (String part : existing.split(java.io.File.pathSeparator)) {
+                if (!part.isBlank()) {
+                    paths.add(part);
+                }
+            }
+        }
+        return String.join(File.pathSeparator, paths);
     }
 
     private String runJava(Path file, Path sandbox) throws IOException {
@@ -186,12 +243,23 @@ public class ExecutionService {
     }
 
     private String execute(List<String> command, Path workingDir) {
+        return execute(command, workingDir, Map.of());
+    }
+
+    private String execute(List<String> command, Path workingDir, Map<String, String> extraEnv) {
         Process process = null;
         try {
             ProcessBuilder builder = new ProcessBuilder(new ArrayList<>(command));
             builder.directory(workingDir.toFile());
             builder.redirectErrorStream(true);
             sanitizeEnvironment(builder.environment(), workingDir);
+            if (extraEnv != null) {
+                extraEnv.forEach((key, value) -> {
+                    if (key != null && !key.isBlank() && value != null && !value.isBlank()) {
+                        builder.environment().put(key, value);
+                    }
+                });
+            }
 
             log.info("Executing in {}: {}", workingDir, command);
             process = builder.start();

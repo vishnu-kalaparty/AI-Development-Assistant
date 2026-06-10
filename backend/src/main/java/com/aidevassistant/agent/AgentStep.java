@@ -1,6 +1,9 @@
 package com.aidevassistant.agent;
 
-public class AgentStep {
+import java.io.Serializable;
+
+public class AgentStep implements Serializable {
+    private static final long serialVersionUID = 1L;
     private final String stage;
     private final int step;
     private final String thought;

@@ -16,14 +16,6 @@ public class AgentRun {
         this.filesWritten = filesWritten != null ? filesWritten : new ArrayList<>();
     }
 
-    public static AgentRun completed(String summary, List<AgentStep> steps, List<String> filesWritten) {
-        return new AgentRun("completed", summary, steps, filesWritten);
-    }
-
-    public static AgentRun exhausted(String summary, List<AgentStep> steps, List<String> filesWritten) {
-        return new AgentRun("exhausted", summary, steps, filesWritten);
-    }
-
     public static AgentRun error(String message) {
         return new AgentRun("error", message, List.of(), List.of());
     }

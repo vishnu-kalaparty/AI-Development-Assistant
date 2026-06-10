@@ -10,8 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/code")
@@ -67,7 +65,7 @@ public class CodeController {
     @PostMapping("/save")
     public ResponseEntity<ChatResponse> saveCode(@RequestBody CodeAssistRequest request) {
         try {
-            String fileName = request.getInstruction(); // Using instruction field as fileName
+            String fileName = request.getInstruction();
             if (fileName == null || fileName.trim().isEmpty()) {
                 String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
                 String fileExtension = getFileExtension(request.getLanguage());
@@ -81,60 +79,6 @@ public class CodeController {
             return ResponseEntity.internalServerError()
                     .body(new ChatResponse("Error saving file: " + e.getMessage()));
         }
-    }
-    
-    @GetMapping("/files")
-    public ResponseEntity<Map<String, Object>> listFiles() {
-        try {
-            String result = agentToolsService.listFiles("", false);
-            Map<String, Object> response = new HashMap<>();
-            response.put("files", parseFileList(result));
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(null);
-        }
-    }
-    
-    @PostMapping("/load")
-    public ResponseEntity<Map<String, String>> loadFile(@RequestBody Map<String, String> request) {
-        try {
-            String fileName = request.get("fileName");
-            String content = agentToolsService.readFile(fileName);
-            
-            Map<String, String> response = new HashMap<>();
-            response.put("content", content);
-            response.put("fileName", fileName);
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(null);
-        }
-    }
-    
-    @DeleteMapping("/delete")
-    public ResponseEntity<ChatResponse> deleteFile(@RequestBody Map<String, String> request) {
-        try {
-            String fileName = request.get("fileName");
-            agentToolsService.deleteFile(fileName);
-            return ResponseEntity.ok(new ChatResponse("File deleted successfully"));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(new ChatResponse("Error deleting file: " + e.getMessage()));
-        }
-    }
-    
-    private java.util.List<String> parseFileList(String result) {
-        java.util.List<String> files = new java.util.ArrayList<>();
-        String[] lines = result.split("\n");
-        for (String line : lines) {
-            if (line.trim().startsWith("- ")) {
-                String fileName = line.trim().substring(2).trim();
-                if (!fileName.endsWith("/")) {
-                    files.add(fileName);
-                }
-            }
-        }
-        return files;
     }
     
     private String getFileExtension(String language) {
