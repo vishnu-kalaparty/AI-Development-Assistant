@@ -1,0 +1,72 @@
+.code-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.code-editor-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--code-bg);
+  color: var(--code-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--code-border);
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-family: var(--font-mono);
+}
+
+.code-editor-mode {
+  color: var(--code-text);
+  opacity: 0.65;
+}
+
+.code-editor-frame {
+  border: 1px solid var(--code-border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+  background: var(--code-bg);
+  min-height: 240px;
+}
+
+.code-editor-frame:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.code-editor-diff-frame .monaco-diff-editor {
+  --vscode-diffEditor-insertedTextBackground: rgba(46, 160, 67, 0.22);
+  --vscode-diffEditor-removedTextBackground: rgba(248, 81, 73, 0.2);
+}
+
+.code-editor-diff-legend {
+  display: flex;
+  gap: 1rem;
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.diff-legend-added::before,
+.diff-legend-removed::before {
+  content: "";
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 2px;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.diff-legend-added::before {
+  background: color-mix(in srgb, var(--success) 55%, transparent);
+}
+
+.diff-legend-removed::before {
+  background: color-mix(in srgb, var(--error) 55%, transparent);
+}

@@ -1,0 +1,100 @@
+.sandbox-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.sandbox-tree-empty {
+  color: var(--text-muted);
+  text-align: center;
+  margin: 0.35rem 0;
+  font-size: 0.9rem;
+}
+
+.sandbox-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.7rem;
+}
+
+.sandbox-tree-folder,
+.sandbox-tree-file-btn,
+.sandbox-tree-delete {
+  background: none;
+  border: none;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.15rem 0.2rem;
+}
+
+.sandbox-tree-folder {
+  width: 100%;
+  justify-content: flex-start;
+  color: var(--text-muted);
+}
+
+.sandbox-tree-folder:hover,
+.sandbox-tree-file-btn:hover {
+  color: var(--text);
+}
+
+.sandbox-tree-file {
+  justify-content: space-between;
+}
+
+.sandbox-tree-file-btn {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.sandbox-tree-file-btn span,
+.sandbox-tree-folder span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sandbox-tree-delete {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.sandbox-tree-delete:hover {
+  color: var(--error);
+}
+
+.sandbox-tree-badge {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  margin-left: 0.25rem;
+}
+
+.sandbox-tree-badge-new {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.sandbox-tree-badge-modified {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.sandbox-tree-file-new .sandbox-tree-file-btn {
+  color: var(--success);
+}
+
+.sandbox-tree-file-modified .sandbox-tree-file-btn {
+  color: var(--warning);
+}
