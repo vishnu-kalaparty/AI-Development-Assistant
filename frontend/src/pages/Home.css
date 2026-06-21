@@ -1,175 +1,90 @@
 .home-page {
-  max-width: 1200px;
+  max-width: 44rem;
   margin: 0 auto;
-  padding: 2rem;
-}
-
-.hero-section {
   text-align: center;
-  padding: 4rem 2rem;
-  margin-bottom: 4rem;
 }
 
-.hero-section h1 {
-  font-size: 3.5rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1.2;
-}
-
-.hero-subtitle {
-  font-size: 1.5rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 2.5rem;
-  max-width: 800px;
+.home-intro {
   margin-left: auto;
   margin-right: auto;
-  line-height: 1.6;
 }
 
-.hero-actions {
+.home-intro h1 {
+  font-size: 2rem;
+  max-width: 28ch;
+  margin: 0 auto 0.75rem;
+}
+
+.home-intro p {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 52ch;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.home-actions {
   display: flex;
-  gap: 1rem;
-  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
   flex-wrap: wrap;
+  width: 100%;
+  justify-content: center;
 }
 
-.primary-cta,
-.secondary-cta {
-  display: inline-block;
-  padding: 0.875rem 2rem;
-  border-radius: 8px;
+.home-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 0.95rem;
+  border-radius: var(--radius);
   text-decoration: none;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: all 0.2s;
+  border: 1px solid var(--border);
+  max-width: 100%;
 }
 
-.primary-cta {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
+.home-link:hover {
+  text-decoration: none;
 }
 
-.primary-cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+.home-link.btn-primary {
+  color: var(--on-accent);
+  text-decoration: none;
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
-.secondary-cta {
-  background-color: transparent;
-  color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+.home-index {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+  text-align: center;
 }
 
-.secondary-cta:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-.features-section {
-  background-color: #111111;
-  border-radius: 12px;
-  padding: 2.5rem;
-  margin-bottom: 2rem;
-  border: 1px solid #2a2a2a;
-}
-
-.features-section h2 {
-  font-size: 2rem;
-  margin-bottom: 1.5rem;
-  color: #fff;
-}
-
-.features-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.features-list li {
+.home-index article {
   padding: 1rem 0;
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 1.8;
-  border-bottom: 1px solid #2a2a2a;
-  padding-left: 1.5rem;
-  position: relative;
+  border-bottom: 1px solid var(--border);
 }
 
-.features-list li:last-child {
-  border-bottom: none;
+.home-index h2 {
+  font-size: 1.05rem;
+  margin-bottom: 0.25rem;
 }
 
-.features-list li::before {
-  content: "→";
-  position: absolute;
-  left: 0;
-  color: #667eea;
-  font-weight: bold;
-}
-
-.features-list li strong {
-  color: #fff;
-  font-weight: 600;
-}
-
-.info-section {
-  background-color: #111111;
-  border-radius: 12px;
-  padding: 2.5rem;
-  border: 1px solid #2a2a2a;
-}
-
-.info-section h2 {
-  font-size: 2rem;
-  margin-bottom: 1.5rem;
-  color: #fff;
-}
-
-.info-section p {
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 1.8;
-  margin-bottom: 1rem;
-}
-
-.info-section code {
-  background-color: #1a1a1a;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
-  color: #667eea;
+.home-index p {
+  color: var(--text-muted);
+  margin: 0 auto;
+  max-width: 40ch;
 }
 
 @media (max-width: 768px) {
-  .hero-section {
-    padding: 2rem 1rem;
-  }
-
-  .hero-section h1 {
-    font-size: 2.5rem;
-  }
-
-  .hero-subtitle {
-    font-size: 1.25rem;
-  }
-
-  .hero-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .primary-cta,
-  .secondary-cta {
-    width: 100%;
-    text-align: center;
-  }
-
-  .features-section,
-  .info-section {
-    padding: 1.5rem;
+  .home-intro h1 {
+    font-size: 1.6rem;
   }
 }

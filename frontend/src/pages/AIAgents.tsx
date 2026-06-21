@@ -1,22 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Plus, X, FolderOpen, Save, Trash2, RefreshCw } from 'lucide-react'
-import CodeEditor from '../components/CodeEditor'
-import axios from 'axios'
+import { Send, Plus, X } from 'lucide-react'
+import SandboxExplorer from '../components/SandboxExplorer'
+import { runAgents, loadPersona } from '../api/agentsApi'
+import { useSandboxEditor } from '../hooks/useSandboxEditor'
+import { AgentStep } from '../types/agent'
 import './AIAgents.css'
 
 interface Persona {
   name: string
   type: string
   path: string
-}
-
-interface AgentStep {
-  stage: string
-  step: number
-  thought: string
-  toolName: string
-  toolArgs: string
-  observation: string
 }
 
 const PERSONA_OPTIONS: Record<string, Persona[]> = {
@@ -49,10 +42,7 @@ export default function AIAgents() {
   const [selectedPersona, setSelectedPersona] = useState<Persona>(PERSONA_OPTIONS['Software Engineer'][0])
   const [includeReviewer, setIncludeReviewer] = useState(true)
 
-  const [editorContent, setEditorContent] = useState('')
-  const [editorPath, setEditorPath] = useState('')
-  const [editorLanguage] = useState('python')
-  const [sandboxFiles, setSandboxFiles] = useState<string[]>([])
+  const sandbox = useSandboxEditor()
 
   const [steps, setSteps] = useState<AgentStep[]>([])
   const [status, setStatus] = useState('')
@@ -73,24 +63,9 @@ export default function AIAgents() {
     setSelectedPersona(options[0])
   }, [selectedType])
 
-  useEffect(() => {
-    loadSandboxFiles()
-  }, [])
-
-  const loadSandboxFiles = async () => {
-    try {
-      const result = await axios.get('/api/agents/files')
-      setSandboxFiles(result.data.files || [])
-    } catch (error) {
-      console.error('Error loading sandbox files:', error)
-    }
-  }
-
   const handleLoadPersona = async () => {
     try {
-      await axios.post('/api/agents/load-persona', {
-        personaPath: selectedPersona.path,
-      })
+      await loadPersona(selectedPersona.path)
       setActivePersona(selectedPersona)
       alert(`Loaded persona: ${selectedPersona.name}`)
     } catch (error: any) {
@@ -106,8 +81,7 @@ export default function AIAgents() {
     setActivePersona(PERSONA_OPTIONS['Software Engineer'][0])
     setSelectedType('Software Engineer')
     setSelectedPersona(PERSONA_OPTIONS['Software Engineer'][0])
-    setEditorContent('')
-    setEditorPath('')
+    sandbox.clearEditor()
   }
 
   const handleRemovePersona = () => {
@@ -115,60 +89,6 @@ export default function AIAgents() {
     setActivePersona(defaultPersona)
     setSelectedType('Software Engineer')
     setSelectedPersona(defaultPersona)
-  }
-
-  const handleLoadFile = async (filePath?: string) => {
-    const pathToLoad = filePath || editorPath.trim()
-    if (!pathToLoad) {
-      alert('Enter a file path to load')
-      return
-    }
-
-    try {
-      const response = await axios.post('/api/agents/read-file', {
-        filePath: pathToLoad,
-      })
-
-      setEditorContent(response.data.content)
-      setEditorPath(pathToLoad)
-    } catch (error) {
-      console.error('Error loading file:', error)
-      alert('Failed to load file')
-    }
-  }
-
-  const handleSaveFile = async () => {
-    if (!editorPath.trim()) {
-      alert('Enter a file path before saving')
-      return
-    }
-
-    try {
-      await axios.post('/api/agents/write-file', {
-        filePath: editorPath.trim(),
-        content: editorContent,
-      })
-      await loadSandboxFiles()
-    } catch (error) {
-      console.error('Error saving file:', error)
-      alert('Failed to save file')
-    }
-  }
-
-  const handleDeleteFile = async (fileName: string) => {
-    if (!confirm(`Delete ${fileName}?`)) return
-
-    try {
-      await axios.delete('/api/agents/delete-file', { data: { fileName } })
-      await loadSandboxFiles()
-      if (editorPath === fileName) {
-        setEditorPath('')
-        setEditorContent('')
-      }
-    } catch (error) {
-      console.error('Error deleting file:', error)
-      alert('Error deleting file')
-    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -184,27 +104,22 @@ export default function AIAgents() {
     setSummary('')
 
     try {
-      const response = await axios.post(
-        '/api/agents/run',
-        {
-          task,
-          engineerPersonaPath: activePersona?.path || '',
-          reviewerPersonaPath: 'quality_testing/qa_engineers/Alex-QA.md',
-          includeReviewer,
-        },
-        { timeout: 180000 }
-      )
+      const data = await runAgents({
+        task,
+        engineerPersonaPath: activePersona?.path || '',
+        reviewerPersonaPath: 'quality_testing/qa_engineers/Alex-QA.md',
+        includeReviewer,
+      })
 
-      const data = response.data
       setStatus(data.status || 'completed')
       setSummary(data.summary || '')
       setSteps(data.steps || [])
-      setSandboxFiles(data.sandboxFiles || [])
+      await sandbox.refresh()
 
       const written: string[] = data.filesWritten || []
       const fileToLoad = written[written.length - 1]
       if (fileToLoad) {
-        await handleLoadFile(fileToLoad)
+        await sandbox.loadEditorFile(fileToLoad)
       }
     } catch (error: any) {
       console.error('Error running agents:', error)
@@ -218,9 +133,11 @@ export default function AIAgents() {
 
   return (
     <div className="agents-page">
-      <div className="agents-header">
-        <h1>AI Agents</h1>
-        <p>Engineer + Reviewer loop with sandbox tools and path-validated execution</p>
+      <div className="agents-header page-header">
+        <div>
+          <h1>AI Agents</h1>
+          <p>Engineer and reviewer run against sandbox tools. For the full six-stage flow, use SDLC Workflow.</p>
+        </div>
       </div>
 
       <div className="agents-container">
@@ -277,6 +194,19 @@ export default function AIAgents() {
                 </div>
               </div>
 
+              <div className="persona-actions">
+                <button onClick={handleLoadPersona} disabled={isLoading}>
+                  Load Persona
+                </button>
+                <button onClick={handleRemovePersona} disabled={isLoading}>
+                  <X size={16} />
+                  Reset
+                </button>
+                <button onClick={handleNewTask} disabled={isLoading} title="New task">
+                  <Plus size={16} />
+                </button>
+              </div>
+
               <label className="reviewer-toggle">
                 <input
                   type="checkbox"
@@ -284,23 +214,8 @@ export default function AIAgents() {
                   onChange={(e) => setIncludeReviewer(e.target.checked)}
                   disabled={isLoading}
                 />
-                Run QA reviewer after the engineer
+                Include QA reviewer
               </label>
-
-              <div className="persona-actions">
-                <button onClick={handleLoadPersona} disabled={isLoading}>
-                  <Plus size={16} />
-                  Load Persona
-                </button>
-                <button onClick={handleNewTask} disabled={isLoading}>
-                  <Plus size={16} />
-                  New Task
-                </button>
-                <button onClick={handleRemovePersona} className="remove-btn" disabled={isLoading} title="Reset to default">
-                  <X size={16} />
-                  Reset
-                </button>
-              </div>
             </div>
 
             <div className="messages-container">
@@ -371,72 +286,30 @@ export default function AIAgents() {
         </div>
 
         <div className="right-panel">
-          <div className="editor-section">
-            <div className="editor-header">
-              <div>
-                <h3>Sandbox Code Editor</h3>
-                <p className="editor-subtitle">Files in data/sandbox</p>
-              </div>
-              <button onClick={loadSandboxFiles} className="icon-button-small" title="Refresh files">
-                <RefreshCw size={16} />
-              </button>
-            </div>
-
-            <div className="sandbox-file-list">
-              {sandboxFiles.length === 0 ? (
-                <p className="empty-files">No files in sandbox</p>
-              ) : (
-                <div className="file-grid">
-                  {sandboxFiles.map((file) => (
-                    <div key={file} className="sandbox-file-item">
-                      <button
-                        className="file-load-btn"
-                        onClick={() => handleLoadFile(file)}
-                        title={`Load ${file}`}
-                      >
-                        <FolderOpen size={14} />
-                        <span>{file}</span>
-                      </button>
-                      <button
-                        className="file-delete-btn"
-                        onClick={() => handleDeleteFile(file)}
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="editor-controls">
-              <input
-                type="text"
-                value={editorPath}
-                onChange={(e) => setEditorPath(e.target.value)}
-                placeholder="e.g., fizzbuzz.py"
-              />
-              <button onClick={() => handleLoadFile()} className="icon-button">
-                <FolderOpen size={18} />
-                Load
-              </button>
-            </div>
-
-            <div className="editor-wrapper">
-              <CodeEditor
-                value={editorContent}
-                onChange={(value) => setEditorContent(value || '')}
-                language={editorLanguage}
-                height="420px"
-              />
-            </div>
-
-            <button onClick={handleSaveFile} className="save-file-button">
-              <Save size={18} />
-              Save to Sandbox
-            </button>
-
+          <div className="editor-section agents-sandbox-panel">
+            <SandboxExplorer
+              sandboxFiles={sandbox.files}
+              sandboxTree={sandbox.tree}
+              draftFileStatuses={{}}
+              activeSandboxPath=""
+              editorPath={sandbox.editorPath}
+              editorContent={sandbox.editorContent}
+              editorBaseline={null}
+              editorFileStatus={null}
+              showDiff={false}
+              readOnly={false}
+              awaitingHuman={false}
+              onEditorPathChange={sandbox.setEditorPath}
+              onEditorContentChange={sandbox.setEditorContent}
+              onLoadFile={(path) => void sandbox.loadEditorFile(path)}
+              onDeleteFile={async (path) => {
+                if (!confirm(`Delete ${path}?`)) return
+                await sandbox.deleteFile(path)
+                if (sandbox.editorPath === path) sandbox.clearEditor()
+              }}
+              onRefresh={() => void sandbox.refresh()}
+              onSave={() => void sandbox.saveEditorFile().catch(() => alert('Failed to save file'))}
+            />
             <p className="editor-info">
               The Engineer writes files with <code>write_file</code> and verifies them with <code>run_code</code>.
               Paths are validated so agents cannot leave <code>data/sandbox</code>.

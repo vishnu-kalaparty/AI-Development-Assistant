@@ -6,6 +6,7 @@ import LearningTopics from './pages/LearningTopics.tsx'
 import Requirements from './pages/Requirements.tsx'
 import CodeAssistant from './pages/CodeAssistant.tsx'
 import AIAgents from './pages/AIAgents.tsx'
+import SdlcWorkflow from './pages/SdlcWorkflow.tsx'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="requirements" element={<Requirements />} />
         <Route path="code-assistant" element={<CodeAssistant />} />
         <Route path="ai-agents" element={<AIAgents />} />
+        <Route path="sdlc" element={<SdlcWorkflow />} />
       </Route>
     </Routes>
   )

@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import CodeEditor from '../components/CodeEditor'
+import SandboxFileTree from '../components/SandboxFileTree'
 import './CodeAssistant.css'
 import axios from 'axios'
-import { Save, FolderOpen, Trash2, RefreshCw } from 'lucide-react'
+import { Save, RefreshCw } from 'lucide-react'
+import { useSandboxFiles } from '../hooks/useSandboxFiles'
+import { languageFromHint, languageFromPath } from '../utils/languageFromPath'
 
 export default function CodeAssistant() {
   const [code, setCode] = useState('')
@@ -12,21 +15,8 @@ export default function CodeAssistant() {
   const [response, setResponse] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [fileName, setFileName] = useState('')
-  const [files, setFiles] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
-
-  useEffect(() => {
-    loadFiles()
-  }, [])
-
-  const loadFiles = async () => {
-    try {
-      const result = await axios.get('/api/code/files')
-      setFiles(result.data.files || [])
-    } catch (error) {
-      console.error('Error loading files:', error)
-    }
-  }
+  const { files, tree, refresh: loadFiles, loadFile, deleteFile } = useSandboxFiles()
 
   const extractCodeFromResponse = (text: string) => {
     // Match code blocks with language specifier: ```language\ncode\n```
@@ -41,30 +31,13 @@ export default function CodeAssistant() {
       const detectedLang = lastMatch[1]?.toLowerCase()
       const extractedCode = lastMatch[2].trim()
       
-      // Only extract if there's actual code content
       if (!extractedCode || extractedCode.length < 3) {
         return null
       }
       
-      // Map common language names
-      const langMap: Record<string, string> = {
-        'py': 'python',
-        'python': 'python',
-        'js': 'javascript',
-        'javascript': 'javascript',
-        'ts': 'typescript',
-        'typescript': 'typescript',
-        'java': 'java',
-        'cpp': 'cpp',
-        'c++': 'cpp',
-        'c': 'cpp',
-        'go': 'go',
-        'golang': 'go',
-      }
-      
       return {
         code: extractedCode,
-        language: detectedLang && langMap[detectedLang] ? langMap[detectedLang] : language
+        language: languageFromHint(detectedLang, language)
       }
     }
     
@@ -135,23 +108,10 @@ export default function CodeAssistant() {
 
   const handleLoadFile = async (file: string) => {
     try {
-      const result = await axios.post('/api/code/load', { fileName: file })
-      setCode(result.data.content)
+      const content = await loadFile(file)
+      setCode(content)
       setFileName(file)
-      
-      // Try to detect language from extension
-      const ext = file.split('.').pop()?.toLowerCase()
-      const langMap: Record<string, string> = {
-        'py': 'python',
-        'js': 'javascript',
-        'ts': 'typescript',
-        'java': 'java',
-        'cpp': 'cpp',
-        'go': 'go',
-      }
-      if (ext && langMap[ext]) {
-        setLanguage(langMap[ext])
-      }
+      setLanguage(languageFromPath(file, language))
     } catch (error) {
       console.error('Error loading file:', error)
       alert('Error loading file')
@@ -162,8 +122,7 @@ export default function CodeAssistant() {
     if (!confirm(`Delete ${file}?`)) return
 
     try {
-      await axios.delete('/api/code/delete', { data: { fileName: file } })
-      await loadFiles()
+      await deleteFile(file)
       if (fileName === file) {
         setFileName('')
         setCode('')
@@ -205,29 +164,13 @@ export default function CodeAssistant() {
           </div>
           
           <div className="file-list">
-            {files.length === 0 ? (
-              <p className="empty-state">No files yet</p>
-            ) : (
-              files.map((file) => (
-                <div key={file} className="file-item">
-                  <button
-                    className="file-name"
-                    onClick={() => handleLoadFile(file)}
-                    title={file}
-                  >
-                    <FolderOpen size={14} />
-                    <span>{file}</span>
-                  </button>
-                  <button
-                    className="delete-btn"
-                    onClick={() => handleDeleteFile(file)}
-                    title="Delete"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))
-            )}
+            <SandboxFileTree
+              files={files}
+              tree={tree}
+              onLoad={handleLoadFile}
+              onDelete={handleDeleteFile}
+              emptyLabel="No files yet"
+            />
           </div>
         </div>
 
@@ -268,7 +211,7 @@ export default function CodeAssistant() {
           <div className="editor-toolbar">
             <input
               type="text"
-              placeholder="Enter filename (e.g., script.py)"
+              placeholder="Enter path (e.g., src/script.py)"
               value={fileName}
               onChange={(e) => setFileName(e.target.value)}
               className="filename-input"
