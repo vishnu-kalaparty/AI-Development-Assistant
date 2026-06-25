@@ -1,25 +1,52 @@
-# Simple Docker Compose
-version: '3.8'
+name: ai-dev-assistant
+
+volumes:
+  neo4j_data:
 
 services:
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: ai-dev-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-password}
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   ai-dev-assistant:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: ai-dev-assistant
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Docker-only overrides (env_file supplies SDLC_USE_API, LLM_PROVIDER, etc.)
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      NEO4J_URI: bolt://neo4j:7687
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8080:8080"
-    environment:
-      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
-      - GOOGLE_AI_MODEL=${GOOGLE_AI_MODEL:-gemini-2.5-flash}
     volumes:
-      # Mount data directory for persistent storage
       - ./backend/data:/app/data
-
       - ./backend/data/personas:/app/data/personas:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
