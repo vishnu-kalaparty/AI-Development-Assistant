@@ -29,9 +29,13 @@ backend/mvnw.cmd
 !backend/**/src/main/**/target/
 !backend/**/src/test/**/target/
 
-# Data directories (keep structure, ignore contents)
+# Data directories (keep structure, ignore ephemeral workflow sandboxes)
 backend/data/sandbox/*
 !backend/data/sandbox/.gitkeep
+!backend/data/sandbox/runs/
+backend/data/sandbox/runs/*
+!backend/data/sandbox/runs/python-cli-notes-app/
+!backend/data/sandbox/runs/python-cli-notes-app/**
 backend/data/requirements/*
 !backend/data/requirements/.gitkeep
 
